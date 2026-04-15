@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TaskFlow – Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/dashboard.css" />
+</head>
+<body>
+
+<!-- ── Sidebar ── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-icon">✓</div>
+    <span class="logo-text">TaskFlow</span>
+  </div>
+
+  <nav class="sidebar-nav">
+    <a class="nav-item active" href="#" data-view="tasks">
+      <span class="nav-icon">📋</span> My Tasks
+    </a>
+    <a class="nav-item admin-only" href="#" data-view="admin" style="display:none">
+      <span class="nav-icon">🛡️</span> Admin Panel
+    </a>
+  </nav>
+
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sidebarAvatar">?</div>
+    <div class="user-info">
+      <div class="user-name" id="sidebarName">Loading…</div>
+      <div class="user-role" id="sidebarRole">—</div>
+    </div>
+    <button class="logout-btn" onclick="logout()" title="Logout">⏻</button>
+  </div>
+</aside>
+
+<!-- ── Main ── -->
+<main class="main">
+
+  <!-- Tasks View -->
+  <div id="viewTasks" class="view active">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">My Tasks</h1>
+        <p class="page-sub" id="taskSubtitle">Loading your tasks…</p>
+      </div>
+      <button class="btn-primary" onclick="openModal()">+ New Task</button>
+    </header>
+
+    <!-- Stats bar -->
+    <div class="stats-row" id="statsRow">
+      <div class="stat-card"><div class="stat-num" id="statTotal">—</div><div class="stat-label">Total</div></div>
+      <div class="stat-card todo"><div class="stat-num" id="statTodo">—</div><div class="stat-label">To Do</div></div>
+      <div class="stat-card progress"><div class="stat-num" id="statProgress">—</div><div class="stat-label">In Progress</div></div>
+      <div class="stat-card done"><div class="stat-num" id="statDone">—</div><div class="stat-label">Done</div></div>
+      <div class="stat-card overdue"><div class="stat-num" id="statOverdue">—</div><div class="stat-label">Overdue</div></div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-bar">
+      <input class="search-input" type="text" id="searchInput" placeholder="🔍  Search tasks…" oninput="debounceSearch()" />
+      <select class="filter-select" id="filterStatus" onchange="loadTasks()">
+        <option value="">All Status</option>
+        <option value="todo">To Do</option>
+        <option value="in_progress">In Progress</option>
+        <option value="done">Done</option>
+      </select>
+      <select class="filter-select" id="filterPriority" onchange="loadTasks()">
+        <option value="">All Priority</option>
+        <option value="high">High</option>
+        <option value="medium">Medium</option>
+        <option value="low">Low</option>
+      </select>
+      <select class="filter-select" id="filterSort" onchange="loadTasks()">
+        <option value="created_at">Newest First</option>
+        <option value="due_date">Due Date</option>
+        <option value="priority">Priority</option>
+        <option value="title">Title A–Z</option>
+      </select>
+    </div>
+
+    <!-- Task list -->
+    <div id="taskList" class="task-list"></div>
+    <div id="taskPagination" class="pagination"></div>
+  </div>
+
+  <!-- Admin View -->
+  <div id="viewAdmin" class="view">
+    <header class="page-header">
+      <div>
+        <h1 class="page-title">Admin Panel</h1>
+        <p class="page-sub">Manage all users on the platform</p>
+      </div>
+    </header>
+
+    <div class="stats-row" id="adminStatsRow">
+      <div class="stat-card"><div class="stat-num" id="aStatUsers">—</div><div class="stat-label">Total Users</div></div>
+      <div class="stat-card done"><div class="stat-num" id="aStatActive">—</div><div class="stat-label">Active</div></div>
+      <div class="stat-card progress"><div class="stat-num" id="aStatAdmins">—</div><div class="stat-label">Admins</div></div>
+      <div class="stat-card todo"><div class="stat-num" id="aStatTasks">—</div><div class="stat-label">Total Tasks</div></div>
+    </div>
+
+    <div class="filters-bar">
+      <input class="search-input" type="text" id="adminSearch" placeholder="🔍  Search users…" oninput="debounceAdminSearch()" />
+    </div>
+
+    <div id="userTable" class="user-table-wrap"></div>
+  </div>
+
+</main>
+
+<!-- ── Task Modal ── -->
+<div class="modal-overlay" id="modalOverlay" onclick="closeModalOnOverlay(event)">
+  <div class="modal" id="taskModal">
+    <div class="modal-header">
+      <h2 class="modal-title" id="modalTitle">New Task</h2>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+
+    <div id="modalAlert" class="modal-alert" style="display:none"></div>
+
+    <div class="form-group">
+      <label>Title <span class="req">*</span></label>
+      <input type="text" id="taskTitle" placeholder="What needs to be done?" maxlength="200" />
+      <div class="field-error" id="taskTitleErr"></div>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <textarea id="taskDesc" rows="3" placeholder="Optional details…" maxlength="2000"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Status</label>
+        <select id="taskStatus">
+          <option value="todo">To Do</option>
+          <option value="in_progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Priority</label>
+        <select id="taskPriority">
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Due Date</label>
+      <input type="date" id="taskDue" />
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-primary" id="saveTaskBtn" onclick="saveTask()">
+        <span class="btn-text">Save Task</span>
+        <div class="spinner"></div>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Confirm Delete Modal ── -->
+<div class="modal-overlay" id="confirmOverlay">
+  <div class="modal confirm-modal">
+    <div class="modal-header">
+      <h2 class="modal-title">Delete Task?</h2>
+    </div>
+    <p style="color:#94a3b8;margin:.5rem 0 1.5rem">This action cannot be undone.</p>
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-danger" id="confirmDeleteBtn" onclick="confirmDeleteTask()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/config.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>
